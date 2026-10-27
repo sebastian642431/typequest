@@ -1,0 +1,8 @@
+{
+  "name": "Typequest",
+  "short_name": "Typequest",
+  "icons": [{ "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml" }],
+  "theme_color": "#f5f8fc",
+  "background_color": "#f5f8fc",
+  "display": "standalone"
+}

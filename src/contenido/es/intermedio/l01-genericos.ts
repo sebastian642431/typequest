@@ -1,0 +1,102 @@
+import type { Leccion } from "../../tipos.ts";
+
+const leccion: Leccion = {
+  id: "genericos",
+  titulo: "Funciones con hueco",
+  resumen: "Parámetros de tipo: escribir una vez y que sirva para cualquier tipo sin perder información.",
+  teoria: [
+    { texto: "Una función genérica tiene un hueco para un tipo. Lo declarás entre `<` y `>` y lo usás como cualquier otro tipo. Es como una caja que dice \"lo que entra, sale\"." },
+    { codigo: "function primero<T>(lista: T[]): T | undefined {\n  return lista[0];\n}\nconst p = primero([\"mate\", \"bizcocho\"]);" },
+    { texto: "No hace falta decirle qué es `T`: lo infiere de los argumentos. Acá `p` queda `string | undefined`. Si querés mandar vos, lo pasás explícito: `primero<number>([1, 2])`." },
+    { texto: "Ojo: si lo pasás explícito y los argumentos no coinciden, error. Le prometiste algo al compilador y él te toma la palabra." },
+    { codigo: "type Caja<T> = { valor: T; etiqueta: string };\ninterface Respuesta<T> {\n  ok: boolean;\n  datos: T;\n}\nconst c: Caja<number> = { valor: 3, etiqueta: \"tres\" };" },
+    { texto: "Los type aliases y las interfaces también aceptan parámetros de tipo. Ahí no hay inferencia: `Caja` solo no es un tipo, tenés que decir `Caja<algo>`." },
+  ],
+  ejercicios: [
+    {
+      tipo: "predecir",
+      id: "identidad",
+      codigo: "function eco<T>(x: T): T {\n  return x;\n}\nconst r = eco(\"hola\");\nr.toUpperCase();",
+      respuesta: "\"HOLA\"",
+      explicacion: "T se infiere como \"hola\", que es un string, así que toUpperCase existe.",
+    },
+    {
+      tipo: "predecir",
+      id: "inferido-number",
+      codigo: "function eco<T>(x: T): T {\n  return x;\n}\nconst r = eco(42);\nr.toUpperCase();",
+      respuesta: "type error",
+      explicacion: "T es 42, un number. Los números no tienen toUpperCase.",
+    },
+    {
+      tipo: "predecir",
+      id: "explicito-mal",
+      codigo: "function eco<T>(x: T): T {\n  return x;\n}\neco<string>(7);",
+      respuesta: "type error",
+      explicacion: "Con T explícito como string, el argumento tiene que ser string, y 7 no lo es.",
+    },
+    {
+      tipo: "predecir",
+      id: "par",
+      codigo: "function par<A, B>(a: A, b: B): [A, B] {\n  return [a, b];\n}\nconst [x, y] = par(\"truco\", 30);\nx.length + y;",
+      respuesta: "35",
+      explicacion: "Dos parámetros de tipo, cada uno inferido de su argumento: A es string y B es number.",
+    },
+    {
+      tipo: "predecir",
+      id: "caja-sin-param",
+      codigo: "type Caja<T> = { valor: T };\nconst c: Caja = { valor: 1 };\nc.valor;",
+      respuesta: "type error",
+      explicacion: "Caja necesita su parámetro de tipo. En un alias no hay inferencia: hay que escribir Caja<number>.",
+    },
+    {
+      tipo: "predecir",
+      id: "interface-generica",
+      codigo: "interface Respuesta<T> {\n  ok: boolean;\n  datos: T;\n}\nconst r: Respuesta<string[]> = { ok: true, datos: [\"a\", \"b\"] };\nr.datos.map((s) => s + s);",
+      respuesta: "[\"aa\", \"bb\"]",
+      explicacion: "datos es string[], así que map recibe strings.",
+    },
+    {
+      tipo: "completar",
+      id: "completar-retorno",
+      enunciado: "Completá el tipo de retorno para que no se pierda qué hay adentro del array.",
+      codigo: "function envolver<T>(x: T): ___ {\n  return [x];\n}",
+      pruebas: "const e = envolver(5);\nconst n: number = e[0];\ntype _t = Esperar<Igual<typeof e, number[]>>;",
+      solucion: "T[]",
+      explicacion: "Si devuelve [x], el retorno es un array de T.",
+    },
+    {
+      tipo: "completar",
+      id: "completar-alias",
+      enunciado: "Completá el alias genérico para que `Par<X>` sea una tupla de dos X.",
+      codigo: "type Par<X> = ___;",
+      pruebas: "const p: Par<string> = [\"dulce\", \"leche\"];\ntype _t = Esperar<Igual<Par<number>, [number, number]>>;",
+      solucion: "[X, X]",
+      explicacion: "El parámetro X se usa dos veces dentro de la tupla.",
+    },
+    {
+      tipo: "arreglar",
+      id: "arreglar-unknown",
+      enunciado: "Esta función devuelve `unknown[]` y se olvida de qué le pasaste. Hacela genérica.",
+      codigo: "function repetir(x: unknown, veces: number): unknown[] {\n  return Array(veces).fill(x);\n}",
+      pruebas: "const r = repetir(\"ja\", 3);\nconst s: string = r[0];",
+      solucion: "function repetir<T>(x: T, veces: number): T[] {\n  return Array(veces).fill(x);\n}",
+      pista: "Agregá un parámetro de tipo y usalo en el argumento y en el retorno.",
+      explicacion: "Con T, el retorno de repetir(\"ja\", 3) es string[] y r[0] es string.",
+    },
+    {
+      tipo: "elegir",
+      id: "elegir-inferencia",
+      enunciado: "¿De dónde saca TypeScript el valor de T cuando llamás `primero([true, false])` sin escribir `<...>`?",
+      opciones: [
+        "De los argumentos que le pasás",
+        "Del nombre de la variable donde guardás el resultado",
+        "Siempre usa unknown si no lo escribís",
+        "De la primera vez que se llamó a la función en el archivo",
+      ],
+      correcta: 0,
+      explicacion: "El parámetro de tipo se infiere de los argumentos: [true, false] es boolean[], así que T es boolean.",
+    },
+  ],
+};
+
+export default leccion;

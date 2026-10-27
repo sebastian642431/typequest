@@ -1,0 +1,106 @@
+import type { Leccion } from "../../tipos.ts";
+
+const BASE = "type Animal = { nombre: string };\ntype Perro = { nombre: string; ladra: boolean };\n";
+
+const leccion: Leccion = {
+  id: "varianza",
+  titulo: "Quién entra en quién",
+  resumen: "Por qué los parámetros van al revés, la excepción de los métodos, in/out y el agujero de los arrays.",
+  teoria: [
+    { texto: "Un Perro es un Animal con algo extra, así que donde piden Animal podés dar Perro. Con lo que devuelve una función pasa lo mismo: si prometés un Animal, devolver un Perro está perfecto. Eso es covarianza: va en la misma dirección." },
+    { texto: "Con los parámetros se da vuelta. Si alguien espera una función que atienda Perros, le sirve una que atienda cualquier Animal. Al revés no: una función que solo sabe de Perros podría recibir un gato y pedirle que ladre. Eso es contravarianza, y `strict` lo chequea con `strictFunctionTypes`." },
+    { codigo: `${BASE}const atenderAnimal = (a: Animal) => a.nombre;\nconst f: (p: Perro) => string = atenderAnimal;` },
+    { texto: "Hay una excepción por motivos históricos: los parámetros de algo declarado como método, `metodo(x: T)`, se chequean en las dos direcciones. Si lo declarás como propiedad, `metodo: (x: T) => void`, vuelve la regla estricta." },
+    { texto: "En genéricos podés dejar la varianza por escrito: `out T` si T solo sale, `in T` si T solo entra. El compilador verifica que sea cierto." },
+    { codigo: "interface Productor<out T> { dar(): T }\ninterface Consumidor<in T> { tomar: (x: T) => void }" },
+    { texto: "Y el agujero conocido: los arrays son covariantes aunque se puedan modificar. Un `Perro[]` pasa como `Animal[]`, y ahí cualquiera le mete un gato." },
+  ],
+  ejercicios: [
+    {
+      tipo: "predecir",
+      id: "parametro-amplio",
+      codigo: `${BASE}const nombrar: (p: Perro) => string = (a: Animal) => a.nombre;\nnombrar({ nombre: "Toby", ladra: true });`,
+      respuesta: "\"Toby\"",
+      explicacion: "Una función que acepta cualquier Animal también se banca un Perro.",
+    },
+    {
+      tipo: "predecir",
+      id: "propiedad-funcion",
+      codigo: `${BASE}type Refugio = { recibir: (a: Animal) => string };\nconst r: Refugio = { recibir: (p: Perro) => p.nombre };\nr.recibir({ nombre: "Michi" });`,
+      respuesta: "type error",
+      explicacion: "recibir es una propiedad con tipo función, así que el parámetro se chequea estricto: una función de Perros no puede recibir cualquier Animal.",
+    },
+    {
+      tipo: "predecir",
+      id: "metodo-bivariante",
+      codigo: `${BASE}type Refugio = { recibir(a: Animal): string };\nconst r: Refugio = { recibir: (p: Perro) => p.nombre };\nr.recibir({ nombre: "Michi" });`,
+      respuesta: "\"Michi\"",
+      pista: "Compará con el ejercicio anterior: cambió cómo se declara recibir.",
+      explicacion: "Declarado como método, el parámetro es bivariante y pasa. Funciona de casualidad: si la función leyera ladra, daría undefined.",
+    },
+    {
+      tipo: "predecir",
+      id: "agujero-array",
+      codigo: `${BASE}const perros: Perro[] = [{ nombre: "Toby", ladra: true }];\nconst animales: Animal[] = perros;\nanimales.push({ nombre: "Michi" });\nperros[1].ladra;`,
+      respuesta: "undefined",
+      explicacion: "Compila porque los arrays son covariantes. Pero animales y perros son el mismo array, y Michi no tiene ladra.",
+    },
+    {
+      tipo: "elegir",
+      id: "posicion",
+      enunciado: "¿En cuál de estos tipos T aparece en posición contravariante?",
+      opciones: ["() => T", "T[]", "(x: T) => void", "{ readonly valor: T }"],
+      correcta: 2,
+      explicacion: "Como parámetro, T entra a la función: ahí la asignabilidad va al revés. En las otras, T sale o se lee.",
+    },
+    {
+      tipo: "completar",
+      id: "comparador",
+      enunciado: "ordenar recibe Perros. Completá el tipo del comparador para que acepte el que ya existe para Animales.",
+      codigo: `${BASE}type Comparador<T> = (a: T, b: T) => number;\nfunction ordenar(lista: Perro[], cmp: Comparador<___>) {\n  return lista.sort(cmp);\n}`,
+      pruebas: "const porNombre: Comparador<Animal> = (a, b) => a.nombre.localeCompare(b.nombre);\nordenar([], porNombre);",
+      solucion: "Perro",
+      explicacion: "sort le pasa Perros al comparador. Uno que sabe comparar cualquier Animal sirve, por contravarianza.",
+    },
+    {
+      tipo: "completar",
+      id: "fabricar",
+      enunciado: "Completá el retorno de fabricar para que sirva como fábrica de Perros y también de Animales.",
+      codigo: `${BASE}function fabricar(): ___ {\n  return { nombre: "Toby", ladra: true };\n}`,
+      pruebas: "const deAnimales: () => Animal = fabricar;\nconst dePerros: () => Perro = fabricar;",
+      solucion: "Perro",
+      explicacion: "El retorno es covariante: quien devuelve Perros cumple con quien pide Animales. Con Animal no alcanzaría para la segunda.",
+    },
+    {
+      tipo: "completar",
+      id: "manejar",
+      enunciado: "manejar tiene que servir como handler de clicks y de teclas. Completá el tipo de su parámetro.",
+      codigo: "type Click = { tipo: \"click\"; x: number };\ntype Tecla = { tipo: \"tecla\"; codigo: string };\nfunction manejar(e: ___) {\n  return e.tipo;\n}",
+      pruebas: "const alClick: (e: Click) => string = manejar;\nconst alTeclear: (e: Tecla) => string = manejar;",
+      solucion: "Click | Tecla",
+      pista: "Para encajar en los dos lugares, el parámetro tiene que aceptar más, no menos.",
+      explicacion: "Por contravarianza, un parámetro más amplio sirve en más lugares. Click | Tecla cubre los dos handlers.",
+    },
+    {
+      tipo: "arreglar",
+      id: "refugio",
+      enunciado: "El refugio promete recibir cualquier Animal, pero la implementación solo acepta Perros. Arreglá la implementación, no el tipo.",
+      codigo: `${BASE}type Refugio = { recibir: (a: Animal) => string };\nconst refugio: Refugio = {\n  recibir: (p: Perro) => (p.ladra ? "guau, " : "") + p.nombre,\n};`,
+      pruebas: "const r: string = refugio.recibir({ nombre: \"Michi\" });",
+      solucion: `${BASE}type Refugio = { recibir: (a: Animal) => string };\nconst refugio: Refugio = {\n  recibir: (a: Animal) => ("ladra" in a && a.ladra ? "guau, " : "") + a.nombre,\n};`,
+      pista: "Recibí un Animal y preguntá si tiene ladra antes de usarlo.",
+      explicacion: "Con el parámetro como Animal, la función cumple el contrato y el in estrecha antes de leer ladra.",
+    },
+    {
+      tipo: "arreglar",
+      id: "anotacion-mentirosa",
+      enunciado: "La anotación de varianza miente y el compilador lo nota. Corregila.",
+      codigo: `${BASE}interface Caja<in T> {\n  sacar(): T;\n}`,
+      pruebas: "declare let cajaAnimal: Caja<Animal>;\ndeclare let cajaPerro: Caja<Perro>;\ncajaAnimal = cajaPerro;",
+      solucion: `${BASE}interface Caja<out T> {\n  sacar(): T;\n}`,
+      explicacion: "T solo sale de la caja, así que es covariante: out. Con in, el compilador rechaza la declaración.",
+    },
+  ],
+};
+
+export default leccion;

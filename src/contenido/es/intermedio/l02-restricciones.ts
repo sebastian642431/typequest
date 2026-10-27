@@ -1,0 +1,97 @@
+import type { Leccion } from "../../tipos.ts";
+
+const leccion: Leccion = {
+  id: "restricciones",
+  titulo: "Genéricos con condiciones",
+  resumen: "extends para exigirle cosas a T, keyof para claves válidas y valores por defecto.",
+  teoria: [
+    { texto: "Un `T` pelado puede ser cualquier cosa, así que adentro de la función no podés hacer casi nada con él. Con `extends` le ponés patovica a la puerta: solo entran los tipos que cumplen." },
+    { codigo: "function largo<T extends { length: number }>(x: T): number {\n  return x.length;\n}\nlargo(\"milanesa\");\nlargo([1, 2, 3]);" },
+    { texto: "Strings y arrays tienen `length`, así que pasan. Un `number` no tiene, así que rebota en la llamada." },
+    { texto: "Un clásico: `K extends keyof T` obliga a que la clave exista en el objeto. Y como el retorno es `T[K]`, el tipo del resultado depende de qué clave pediste." },
+    { codigo: "function leer<T, K extends keyof T>(obj: T, clave: K): T[K] {\n  return obj[clave];\n}" },
+    { texto: "Un parámetro de tipo puede tener valor por defecto con `=`, igual que un parámetro común: `type Lista<T = string> = T[]`. Si no lo pasás, usa ese." },
+  ],
+  ejercicios: [
+    {
+      tipo: "predecir",
+      id: "largo-number",
+      codigo: "function largo<T extends { length: number }>(x: T): number {\n  return x.length;\n}\nlargo(1234);",
+      respuesta: "type error",
+      explicacion: "number no tiene length, así que no cumple T extends { length: number }.",
+    },
+    {
+      tipo: "predecir",
+      id: "sin-restriccion",
+      codigo: "function largo<T>(x: T): number {\n  return x.length;\n}\nlargo(\"hola\");",
+      respuesta: "type error",
+      explicacion: "Sin restricción, T podría ser cualquier cosa, y no todo tiene length. El error está adentro de la función.",
+    },
+    {
+      tipo: "predecir",
+      id: "leer-clave",
+      codigo: "function leer<T, K extends keyof T>(obj: T, clave: K): T[K] {\n  return obj[clave];\n}\nconst perro = { nombre: \"Firulais\", edad: 4 };\nleer(perro, \"edad\") + 1;",
+      respuesta: "5",
+      explicacion: "K es \"edad\" y T[K] es number, así que se puede sumar.",
+    },
+    {
+      tipo: "predecir",
+      id: "leer-clave-inexistente",
+      codigo: "function leer<T, K extends keyof T>(obj: T, clave: K): T[K] {\n  return obj[clave];\n}\nconst perro = { nombre: \"Firulais\", edad: 4 };\nleer(perro, \"raza\");",
+      respuesta: "type error",
+      explicacion: "\"raza\" no está en keyof del objeto, que es \"nombre\" | \"edad\".",
+    },
+    {
+      tipo: "predecir",
+      id: "conserva-tipo",
+      codigo: "function marcar<T extends { id: number }>(x: T): T {\n  return x;\n}\nconst m = marcar({ id: 1, color: \"azul\" });\nm.color;",
+      respuesta: "\"azul\"",
+      pista: "¿T es { id: number } o el tipo entero del argumento?",
+      explicacion: "La restricción solo pone un piso. T sigue siendo el tipo completo del argumento, así que color no se pierde.",
+    },
+    {
+      tipo: "predecir",
+      id: "default",
+      codigo: "type Lista<T = string> = T[];\nconst l: Lista = [\"a\", 2];\nl.length;",
+      respuesta: "type error",
+      explicacion: "Sin parámetro, Lista es string[], y 2 no es string.",
+    },
+    {
+      tipo: "completar",
+      id: "completar-keyof",
+      enunciado: "Completá la restricción de K para que solo acepte claves de T.",
+      codigo: "function quitar<T, K extends ___>(obj: T, clave: K): T[K] {\n  return obj[clave];\n}",
+      pruebas: "const n: number = quitar({ a: 1, b: \"x\" }, \"a\");",
+      solucion: "keyof T",
+      explicacion: "keyof T es la unión de las claves de T. Con eso, obj[clave] es válido y su tipo es T[K].",
+    },
+    {
+      tipo: "completar",
+      id: "completar-default",
+      enunciado: "Completá el valor por defecto del parámetro de tipo para que `Contador` sin nada use number.",
+      codigo: "type Contador<T = ___> = { valor: T; paso: T };",
+      pruebas: "const c: Contador = { valor: 0, paso: 1 };\nconst suma: number = c.valor + c.paso;",
+      solucion: "number",
+      explicacion: "Con T = number, Contador sin argumentos es { valor: number; paso: number }.",
+    },
+    {
+      tipo: "arreglar",
+      id: "arreglar-restriccion",
+      enunciado: "La función usa `.precio` pero T no promete tenerlo. Agregale una restricción.",
+      codigo: "function total<T>(items: T[]): number {\n  return items.reduce((acc, i) => acc + i.precio, 0);\n}",
+      pruebas: "const t: number = total([{ precio: 10, nombre: \"alfajor\" }]);",
+      solucion: "function total<T extends { precio: number }>(items: T[]): number {\n  return items.reduce((acc, i) => acc + i.precio, 0);\n}",
+      explicacion: "Con T extends { precio: number }, cada item tiene precio numérico y se puede sumar.",
+    },
+    {
+      tipo: "elegir",
+      id: "elegir-restriccion",
+      enunciado: "Con `function f<T extends string | number>(x: T)`, ¿cuál de estas llamadas no compila?",
+      opciones: ["f(\"uno\")", "f(1)", "f(true)", "f<\"a\">(\"a\")"],
+      correcta: 2,
+      explicacion: "true es boolean, y boolean no entra en string | number.",
+    },
+  ],
+};
+
+export default leccion;
