@@ -10,14 +10,14 @@ Cada ejercicio se corrige compilando tu respuesta, no comparando texto.
 
 - **En el navegador** corre TypeScript 6.0.3 (el paquete `ts-web` en `package.json`). TypeScript 7 está escrito en Go y es nativo, así que no corre en el navegador; por eso se usa la 6.0.3 configurada con los defaults de TS 7: `strict`, `target` ES2025, `module` ESNext, `moduleResolution` bundler y `types` vacío.
 - **Los errores salen en tu idioma** con los mensajes traducidos que trae TypeScript.
-- **`pnpm verificar`** pasa cada ejercicio por `tsc` 7 real (el paquete `typescript`) y por el corrector del navegador, y exige que los dos coincidan: si uno da error y el otro no, falla. También chequea que la solución compile, que el código original de "arreglar" no compile, que el hueco vacío de "completar" no pase, y ejecuta el código de "predecir" para comparar el valor con la respuesta.
+- **`pnpm verify`** pasa cada ejercicio por `tsc` 7 real (el paquete `typescript`) y por el corrector del navegador, y exige que los dos coincidan: si uno da error y el otro no, falla. También chequea que la solución compile, que el código original de `fix` no compile, que el hueco vacío de `complete` no pase, y ejecuta el código de `predict` para comparar el valor con la respuesta.
 
 Tipos de ejercicio:
 
-- **Predecir:** ¿qué valor da la última línea? Si no compila, la respuesta es `type error`.
-- **Completar:** escribís lo que va en el hueco y tiene que pasar las pruebas de tipos.
-- **Arreglar:** el código no compila; lo corregís hasta que pase las pruebas.
-- **Elegir:** opción múltiple.
+- **Predecir** (`predict`): ¿qué valor da la última línea? Si no compila, la respuesta es `type error`.
+- **Completar** (`complete`): escribís lo que va en el hueco y tiene que pasar las pruebas de tipos.
+- **Arreglar** (`fix`): el código no compila; lo corregís hasta que pase las pruebas.
+- **Elegir** (`choose`): opción múltiple.
 
 ## Mundos
 
@@ -25,8 +25,11 @@ Tipos de ejercicio:
 2. **Intermedio:** genéricos, keyof, utility types, type guards, clases y async.
 3. **Avanzado:** tipos condicionales, infer, mapped types, template literals y recursión.
 4. **Hacker de tipos:** programación a nivel de tipos: tuplas, aritmética, parsers y APIs tipadas al extremo.
+5. **Mundo real:** APIs, validación de datos, errores tipados, reducers, formularios y migrar JS a TS.
 
-Cada mundo se abre cuando terminás el anterior. Algunos ejercicios son **jefes**: desafíos más largos marcados en el enunciado.
+Todas las lecciones están abiertas: la próxima se marca como recomendada, pero podés entrar a cualquiera. Algunos ejercicios son **jefes**: desafíos más largos marcados en el enunciado.
+
+Cada lección arranca con **la idea** en una frase y la teoría en tarjetas cortas, con botón para escucharlas. Los ejemplos muestran los errores reales del compilador sobre el código.
 
 ## Mecánicas
 
@@ -40,36 +43,60 @@ Cada mundo se abre cuando terminás el anterior. Algunos ejercicios son **jefes*
 
 ## Cómo correrlo
 
-Necesitás [pnpm](https://pnpm.io) y Node con soporte nativo de TypeScript (22.18 o más nuevo), porque `scripts/verificar.mjs` importa archivos `.ts` directamente.
+Necesitás [pnpm](https://pnpm.io) y Node con soporte nativo de TypeScript (22.18 o más nuevo), porque `scripts/verify.mjs` importa archivos `.ts` directamente.
 
 ```sh
 pnpm install
 pnpm dev         # servidor de desarrollo de Vite
-pnpm verificar   # pasa todos los ejercicios por tsc 7 y el corrector web
+pnpm test        # tests de la lógica (Vitest)
+pnpm verify      # pasa todos los ejercicios por tsc 7 y el corrector web
 pnpm build       # chequeo de tipos + build de producción en dist/
+pnpm check       # todo lo anterior junto, igual que el CI
 ```
 
-`pnpm verificar` acepta un filtro opcional: un id de mundo, de lección o un código de idioma (`pnpm verificar hacker`, `pnpm verificar en`).
+`pnpm verify` acepta un filtro opcional: un id de mundo, de lección o un código de idioma (`pnpm verify hacker`, `pnpm verify en`).
 
 ## Estructura
 
 ```
 src/
-  contenido/        lecciones y ejercicios
-    tipos.ts        formato de mundos, lecciones y ejercicios; fallback de idioma
-    es/<mundo>/     mundo.ts + una lección por archivo (l01-..., l02-...)
-  i18n/             textos de la interfaz, un archivo por idioma (es.ts)
-  motor/
-    worker.ts       Web Worker con el compilador de TypeScript
-    corrector.ts    diagnósticos, transpilado y ejecución de "predecir"
-    compilador.ts   cliente del worker
-    efectos.ts      sonidos y confeti
-  estado/           progreso (XP, vidas, racha, repaso, logros)
-  pantallas/        mapa y sesión de ejercicios
-  componentes/      editor, vista de ejercicio, encabezado, logros
+  App.tsx             qué pantalla se muestra según la URL
+  main.tsx            arranque: espera a que cargue el idioma activo
+  locales/            un idioma por carpeta, autocontenida
+    es/
+      meta.ts         nombre, idioma del compilador y de la voz (se carga siempre)
+      messages.ts     textos de la interfaz (se carga solo si es el idioma activo)
+      content/<mundo>/ world.ts + una lección por archivo (l01-..., l02-...)
+  content/
+    types.ts          formato, topes de largo y fallback de idioma
+    index.ts          carga diferida del contenido de un idioma
+    load-node.ts      lo mismo para Node (verify.mjs)
+    useWorlds.ts      mundos del idioma activo
+  i18n/
+    index.ts          idioma elegido, detección y carga diferida de textos + contenido
+    types.ts          LocaleMeta, Messages y LocaleMessages
+  exercises/          un archivo por tipo de ejercicio + registry.ts
+  screens/            Learn, Session, Theory, Review, Profile, Achievements, Settings
+  layout/             Header, NavBar, AccountPanel, AchievementToast
+  ui/                 piezas genéricas: Sheet, ConfirmDialog, CodeBlock, Editor, ListenButton, RichText, TextField
+  state/              progress, settings y route (query params)
+  engine/
+    worker.ts         Web Worker con el compilador de TypeScript
+    checker.ts        diagnósticos, transpilado y corrección de `predict`
+    compiler.ts       cliente del worker y hook de errores
+    effects.ts        sonidos, confeti y vibración
+  config/             sitio y colores de cada mundo
 scripts/
-  verificar.mjs     verificación del contenido contra tsc 7
+  verify.mjs          verificación del contenido contra tsc 7
+.github/workflows/    CI: tipos, tests, verificador y build
 ```
+
+Reglas de la arquitectura:
+
+- **Las pantallas no se importan entre sí.** Lo compartido va a `ui/`, `state/`, `engine/` o `content/`.
+- **La lógica pura no importa React**, para poder testearla (`*.test.ts` al lado del archivo).
+- **El editor (CodeMirror) se carga solo cuando hace falta**, y el compilador vive en un worker aparte, así la primera carga es liviana.
+- **Los idiomas no se registran en ningún lado.** Cada carpeta de `src/locales/` se descubre sola; del bundle principal solo forman parte los `meta.ts`. Los textos y lecciones del idioma activo (y los de `es` como respaldo) se bajan aparte, en un chunk por idioma.
 
 ## Contribuir
 
@@ -78,7 +105,7 @@ Traducciones y ejercicios nuevos son bienvenidos. Mirá [CONTRIBUTING.md](CONTRI
 ## Licencia
 
 - **Código:** [PolyForm Noncommercial License 1.0.0](LICENSE). Podés usarlo, estudiarlo, modificarlo y compartirlo para cualquier fin no comercial.
-- **Contenido educativo** (`src/contenido/**` y textos de `src/i18n/**`): [CC BY-NC-SA 4.0](LICENSE-CONTENT.md).
+- **Contenido educativo** (`src/locales/**`): [CC BY-NC-SA 4.0](LICENSE-CONTENT.md).
 
 Como prohíbe el uso comercial, Typequest **no es "open source"** según la definición de la OSI: es código *source-available* no comercial. El código es público, pero no se puede usar para ganar plata sin permiso.
 
@@ -86,7 +113,7 @@ Como prohíbe el uso comercial, Typequest **no es "open source"** según la defi
 
 ## English
 
-**Typequest** is a web game to learn TypeScript 7, currently in Spanish. Every answer is checked by the real compiler: the browser runs TypeScript 6.0.3 configured with TS 7 defaults (TS 7 is native Go and can't run in a browser), and `pnpm verificar` runs every exercise through the real `tsc` 7 and requires both to agree. Four worlds (Basic, Intermediate, Advanced, Type Hacker), with XP, levels, streaks, lives, combos, achievements and spaced repetition.
+**Typequest** is a web game to learn TypeScript 7, currently in Spanish. Every answer is checked by the real compiler: the browser runs TypeScript 6.0.3 configured with TS 7 defaults (TS 7 is native Go and can't run in a browser), and `pnpm verify` runs every exercise through the real `tsc` 7 and requires both to agree. Five worlds (Basic, Intermediate, Advanced, Type Hacker, Real world), with XP, levels, streaks, lives, combos, achievements and spaced repetition.
 
 Run it with `pnpm install` and `pnpm dev`. Translations are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md).
 

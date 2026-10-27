@@ -1,0 +1,121 @@
+import type { Lesson } from "../../../../content/types.ts";
+
+const lesson: Lesson = {
+  id: "ts7",
+  title: "TypeScript 7: el motor nuevo",
+  summary: "Compilador nativo, defaults más estrictos y lo que se fue para siempre.",
+  idea: "TypeScript 7 es mucho más rápido, con las mismas reglas y defaults más estrictos.",
+  theory: [
+    { title: "Motor nuevo en Go", text: "TypeScript 7 es nativo y unas 10 veces más rápido. El chequeo de tipos es el mismo de 6.0." },
+    { title: "strict de fábrica", text: "Un tsconfig vacío ya trae `strict: true`. Esta línea da error: `null` no entra en `string`.", code: "let nick: string = null;" },
+    { title: "Otros defaults", text: "`module` es `esnext`, `target` es `es2025` y `types` es `[]`. Importar un archivo que no existe es error." },
+    { title: "Lo que se fue", text: "Chau `es5`, `node10`, `classic`, `amd`, `umd`, `systemjs` y `baseUrl`. El orden de las uniones queda estable." },
+    { title: "Sintaxis vieja", text: "`module Foo {}` ahora es `namespace Foo {}`. `assert { type: \"json\" }` ahora es `with { type: \"json\" }`." },
+  ],
+  exercises: [
+    {
+      type: "choose",
+      id: "choose-go",
+      prompt: "¿Qué es TypeScript 7 respecto de TypeScript 6.0?",
+      options: [
+        "El mismo chequeo de tipos, con un compilador nativo en Go mucho más rápido",
+        "Un lenguaje nuevo que rompe casi todo el código de TypeScript 6",
+        "Un compilador escrito en Rust que saltea el chequeo de tipos",
+        "Un plugin de Node que ejecuta TypeScript sin compilar",
+      ],
+      correct: 0,
+      explanation: "Cambió el motor: de JavaScript a Go nativo, unas 10 veces más rápido. Las reglas de tipos son las de 6.0.",
+    },
+    {
+      type: "predict",
+      id: "strict-null",
+      prompt: "Sin tocar el tsconfig, como en un proyecto nuevo de TypeScript 7:",
+      code: "let nick: string = null;\nnick;",
+      answer: "type error",
+      explanation: "`strict` viene prendido, y `null` no entra en `string`.",
+    },
+    {
+      type: "predict",
+      id: "strict-implicit-any",
+      code: "function doble(x) {\n  return x * 2;\n}\ndoble(21);",
+      answer: "type error",
+      explanation: "`strict` incluye `noImplicitAny`: un parámetro sin tipo es error. El código no llega a correr.",
+    },
+    {
+      type: "complete",
+      id: "nullable",
+      prompt: "Si una variable arranca en `null`, el tipo lo tiene que decir. Completá la anotación.",
+      code: "let rival: ___ = null;",
+      tests: "rival = \"Perugius\";\nconst largo: number = rival.length;",
+      solution: "string | null",
+      explanation: "`string | null` acepta los dos. Al asignar un string, el tipo se angosta y `.length` compila.",
+    },
+    {
+      type: "choose",
+      id: "choose-defaults",
+      prompt: "Con un tsconfig sin `compilerOptions`, ¿cuál de estos NO es un default en TypeScript 7?",
+      options: [
+        "target: \"es5\"",
+        "strict: true",
+        "module: \"esnext\"",
+        "types: []",
+      ],
+      correct: 0,
+      explanation: "El `target` por defecto es `es2025`. Y `es5` ya ni existe como opción.",
+    },
+    {
+      type: "choose",
+      id: "choose-types",
+      prompt: "Al migrar a TypeScript 7, no se encuentran `process` ni `describe`. ¿Qué pasó?",
+      options: [
+        "`types` ahora es `[]` por defecto: los paquetes `@types` se nombran en el tsconfig",
+        "TypeScript 7 no soporta Node",
+        "noUncheckedSideEffectImports borra los globales",
+        "Hay que volver a instalar node_modules con otra versión",
+      ],
+      correct: 0,
+      explanation: "Antes se cargaban todos los `@types` solos. Ahora se listan a mano, como `types: [\"node\"]`.",
+    },
+    {
+      type: "choose",
+      id: "choose-removed",
+      prompt: "¿Cuál de estas opciones sigue existiendo en TypeScript 7?",
+      options: [
+        "moduleResolution: \"bundler\"",
+        "baseUrl",
+        "module: \"amd\"",
+        "moduleResolution: \"node10\"",
+      ],
+      correct: 0,
+      explanation: "`bundler` sigue, igual que `nodenext`. Las otras tres se fueron.",
+    },
+    {
+      type: "choose",
+      id: "choose-import-json",
+      prompt: "¿Qué import de JSON compila en TypeScript 7?",
+      options: [
+        "import datos from \"./datos.json\" with { type: \"json\" };",
+        "import datos from \"./datos.json\" assert { type: \"json\" };",
+        "import datos from \"./datos.json\" as { type: \"json\" };",
+        "import datos from \"./datos.json\" type json;",
+      ],
+      correct: 0,
+      explanation: "Los import attributes usan `with`. La forma vieja con `assert` ahora es error.",
+    },
+    {
+      type: "choose",
+      id: "boss-ts7",
+      prompt: "Jefe: un archivo tiene `module Utilidades {}`, `baseUrl` y un import a un archivo borrado. ¿Qué hacés para TS 7?",
+      options: [
+        "Pasar `module` a `namespace`, `baseUrl` a `paths` y arreglar o borrar el import roto",
+        "Nada: TypeScript 7 chequea igual que 6.0, así que todo eso sigue andando",
+        "Solo bajar el target a es5 para recuperar el comportamiento viejo",
+        "Apagar stableTypeOrdering",
+      ],
+      correct: 0,
+      explanation: "Las tres cosas fallan en TS 7: `module` da error, `baseUrl` no existe y el import roto se detecta.",
+    },
+  ],
+};
+
+export default lesson;

@@ -6,13 +6,17 @@
     <title>%SITE_TITLE%</title>
     <meta name="description" content="%SITE_DESCRIPTION%" />
     <meta name="theme-color" content="%SITE_THEME%" />
-    <meta name="color-scheme" content="%SITE_SCHEME%" />
+    <meta name="color-scheme" content="light dark" />
     <link rel="canonical" href="%SITE_URL%/" />
 
+    <meta name="robots" content="index, follow, max-image-preview:large" />
+    <meta name="author" content="sebastian642431" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/icono-512.png" />
     <link rel="manifest" href="/site.webmanifest" />
 
     <meta property="og:type" content="website" />
+    <meta property="og:locale" content="es_AR" />
     <meta property="og:site_name" content="%SITE_NAME%" />
     <meta property="og:title" content="%SITE_TITLE%" />
     <meta property="og:description" content="%SITE_DESCRIPTION%" />
@@ -25,10 +29,20 @@
     <meta name="twitter:title" content="%SITE_TITLE%" />
     <meta name="twitter:description" content="%SITE_DESCRIPTION%" />
     <meta name="twitter:image" content="%SITE_URL%/og.png" />
+    <script type="application/ld+json">%SITE_JSONLD%</script>
 
     <style>
-      html,body{background:%SITE_THEME%;color:%SITE_INK%;margin:0}
+      html,body{background:#f4f7fb;color:#13203b;margin:0}
+      html[data-theme="dark"],html[data-theme="dark"] body{background:#0e1015;color:#e8eef8}
     </style>
+    <script>
+      (function () {
+        var theme = "system";
+        try { theme = JSON.parse(localStorage.getItem("typequest-settings")).state.theme || "system"; } catch (e) {}
+        var dark = theme === "dark" || (theme === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+        document.documentElement.dataset.theme = dark ? "dark" : "light";
+      })();
+    </script>
     <script>
       (function () {
         var orientation = "";
@@ -47,7 +61,11 @@
   <body>
     <div id="root"></div>
     <noscript>
-      <p style="font-family:system-ui,sans-serif;padding:24px">%SITE_NAME%: %SITE_DESCRIPTION%</p>
+      <main style="font-family:system-ui,sans-serif;padding:24px;max-width:640px;margin:auto">
+        <h1>%SITE_NAME%: aprendé TypeScript 7 jugando</h1>
+        <p>%SITE_DESCRIPTION%</p>
+        <p>5 mundos: Básico, Intermedio, Avanzado, Hacker de tipos y Mundo real. Necesitás JavaScript activado para jugar.</p>
+      </main>
     </noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>

@@ -1,8 +1,16 @@
 {
-  "name": "Typequest",
+  "name": "Typequest · Aprendé TypeScript 7 jugando",
   "short_name": "Typequest",
-  "icons": [{ "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml" }],
-  "theme_color": "#f5f8fc",
-  "background_color": "#f5f8fc",
-  "display": "standalone"
+  "description": "Lecciones cortas de TypeScript 7 corregidas por el compilador real.",
+  "lang": "es",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "categories": ["education", "developer", "games"],
+  "icons": [
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "/icono-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ],
+  "theme_color": "#f4f7fb",
+  "background_color": "#f4f7fb"
 }

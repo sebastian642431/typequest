@@ -1,17 +1,21 @@
-import { useEffect, useMemo, useState } from "react";
-import { useMundos } from "./contenido/usar.ts";
-import { pendientesRepaso, useProgreso } from "./estado/progreso.ts";
-import { useT } from "./i18n/index.ts";
-import { precalentar } from "./motor/compilador.ts";
-import { Encabezado } from "./componentes/Encabezado.tsx";
-import { AvisoLogros, PanelLogros } from "./componentes/Logros.tsx";
-import { Mapa } from "./pantallas/Mapa.tsx";
-import { Sesion, type Item } from "./pantallas/Sesion.tsx";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useWorlds } from "./content/useWorlds.ts";
+import { dueReviews, useProgress } from "./state/progress.ts";
+import { useApplyTheme } from "./state/settings.ts";
+import { useRoute } from "./state/route.ts";
+import { useLocaleMeta, useT } from "./i18n/index.ts";
+import { warmUp } from "./engine/compiler.ts";
+import { siteConfig } from "./config/site.ts";
+import { Header } from "./layout/Header.tsx";
+import { NavBar } from "./layout/NavBar.tsx";
+import { AchievementToast } from "./layout/AchievementToast.tsx";
+import { AccountPanel } from "./layout/AccountPanel.tsx";
+import { Learn } from "./screens/Learn.tsx";
+import { Review } from "./screens/Review.tsx";
+import { Session, type Item } from "./screens/Session.tsx";
 
-type Pantalla = { tipo: "mapa" } | { tipo: "leccion"; mundoId: string; leccionId: string } | { tipo: "repaso"; items: Item[] };
-
-function mezclar<T>(lista: T[]) {
-  const a = [...lista];
+function shuffle<T>(list: T[]) {
+  const a = [...list];
   for (let i = a.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [a[i], a[j]] = [a[j], a[i]];
@@ -20,70 +24,121 @@ function mezclar<T>(lista: T[]) {
 }
 
 export default function App() {
+  useApplyTheme();
   const t = useT();
-  const mundos = useMundos();
-  const [pantalla, setPantalla] = useState<Pantalla>({ tipo: "mapa" });
-  const [verLogros, setVerLogros] = useState(false);
+  const { tsLocale } = useLocaleMeta();
+  const worlds = useWorlds();
+  const [route, go] = useRoute();
+  const [reviewItems, setReviewItems] = useState<Item[] | null>(null);
 
-  const indice = useMemo(() => {
-    const mapa = new Map<string, Item>();
-    for (const m of mundos) for (const l of m.lecciones) for (const e of l.ejercicios) {
-      const clave = `${m.id}/${l.id}/${e.id}`;
-      mapa.set(clave, { clave, ejercicio: e });
+  const index = useMemo(() => {
+    const map = new Map<string, Item>();
+    for (const w of worlds) for (const l of w.lessons) for (const e of l.exercises) {
+      const key = `${w.id}/${l.id}/${e.id}`;
+      map.set(key, { key, exercise: e });
     }
-    return mapa;
-  }, [mundos]);
+    return map;
+  }, [worlds]);
+
+  const current = useMemo(() => {
+    if (!route.lesson) return null;
+    const [worldId, lessonId] = route.lesson.split("/");
+    const world = worlds.find((w) => w.id === worldId);
+    const lesson = world?.lessons.find((l) => l.id === lessonId);
+    return world && lesson ? { world, lesson } : null;
+  }, [route.lesson, worlds]);
 
   useEffect(() => {
-    const id = setTimeout(() => precalentar(t.tsLocale), 600);
+    if (route.lesson && !current) go({ lesson: null }, true);
+  }, [route.lesson, current, go]);
+
+  useEffect(() => {
+    if (!route.review) {
+      setReviewItems(null);
+      return;
+    }
+    if (reviewItems) return;
+    const keys = dueReviews(useProgress.getState().review);
+    const items = shuffle(keys.map((k) => index.get(k)).filter((x): x is Item => !!x)).slice(0, 12);
+    if (items.length) setReviewItems(items);
+    else go({ review: false, view: "review" }, true);
+  }, [route.review, reviewItems, index, go]);
+
+  useEffect(() => {
+    const id = setTimeout(() => warmUp(tsLocale), 600);
     return () => clearTimeout(id);
-  }, [t.tsLocale]);
+  }, [tsLocale]);
+
+  const savedScroll = useRef<Record<string, number>>({});
+  const screen = route.lesson ? `lesson:${route.lesson}` : route.review ? "review-session" : route.view;
+  const previousScreen = useRef(screen);
+
+  useLayoutEffect(() => {
+    const previous = previousScreen.current;
+    if (previous === screen) return;
+    previousScreen.current = screen;
+    window.scrollTo(0, savedScroll.current[screen] ?? 0);
+  }, [screen]);
 
   useEffect(() => {
-    window.scrollTo(0, 0);
-  }, [pantalla]);
+    const save = () => {
+      savedScroll.current[previousScreen.current] = window.scrollY;
+    };
+    window.addEventListener("scroll", save, { passive: true });
+    return () => window.removeEventListener("scroll", save);
+  }, []);
 
-  const volver = () => setPantalla({ tipo: "mapa" });
+  useEffect(() => {
+    const part = current
+      ? `${current.lesson.title} · ${current.world.title}`
+      : route.review || route.view === "review"
+        ? t.review.title
+        : route.account
+          ? t.nav[route.account]
+          : null;
+    document.title = part ? `${part} · ${siteConfig.name}` : siteConfig.seo.title;
+  }, [current, route.review, route.view, route.account, t]);
 
-  let vista;
-  if (pantalla.tipo === "leccion") {
-    const mundo = mundos.find((m) => m.id === pantalla.mundoId)!;
-    const leccion = mundo.lecciones.find((l) => l.id === pantalla.leccionId)!;
-    const items = leccion.ejercicios.map((e) => indice.get(`${mundo.id}/${leccion.id}/${e.id}`)!);
-    vista = (
-      <Sesion
-        key={`${mundo.id}/${leccion.id}`}
-        titulo={leccion.titulo}
-        leccion={leccion}
-        mundo={mundo}
-        items={items}
-        modo="leccion"
-        salir={volver}
-      />
-    );
-  } else if (pantalla.tipo === "repaso") {
-    vista = <Sesion key="repaso" titulo="Repaso" items={pantalla.items} modo="repaso" salir={volver} />;
-  } else {
-    vista = (
+  const exit = () => go({ lesson: null, review: false });
+
+  if (current) {
+    const { world, lesson } = current;
+    const items = lesson.exercises.map((e) => index.get(`${world.id}/${lesson.id}/${e.id}`)!);
+    return (
       <>
-        <Encabezado alInicio={volver} abrirLogros={() => setVerLogros(true)} />
-        <Mapa
-          abrirLeccion={(mundoId, leccionId) => setPantalla({ tipo: "leccion", mundoId, leccionId })}
-          abrirRepaso={() => {
-            const claves = pendientesRepaso(useProgreso.getState().repaso);
-            const items = mezclar(claves.map((c) => indice.get(c)).filter((x): x is Item => !!x)).slice(0, 12);
-            if (items.length) setPantalla({ tipo: "repaso", items });
-          }}
-        />
-        {verLogros && <PanelLogros cerrar={() => setVerLogros(false)} />}
+        <Session key={`${world.id}/${lesson.id}`} title={lesson.title} lesson={lesson} world={world} items={items} mode="lesson" exit={exit} />
+        <AchievementToast />
+      </>
+    );
+  }
+
+  if (route.review && reviewItems) {
+    return (
+      <>
+        <Session key="review" title={t.review.title} items={reviewItems} mode="review" exit={exit} />
+        <AchievementToast />
       </>
     );
   }
 
   return (
     <>
-      {vista}
-      <AvisoLogros />
+      <Header onHome={() => go({ view: "learn", account: null })} />
+      {route.view === "learn" && (
+        <Learn
+          openLesson={(worldId, lessonId) => go({ lesson: `${worldId}/${lessonId}`, account: null })}
+          goReview={() => go({ view: "review" })}
+        />
+      )}
+      {route.view === "review" && <Review start={() => go({ review: true, account: null })} />}
+      <NavBar
+        current={route.view}
+        go={(view) => go({ view, account: null })}
+        openProfile={() => go({ account: "profile" })}
+        profileOpen={route.account !== null}
+      />
+      <AccountPanel tab={route.account} onChange={(account) => go({ account }, true)} onClose={() => go({ account: null })} />
+      <AchievementToast />
     </>
   );
 }
